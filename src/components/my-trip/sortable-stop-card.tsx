@@ -57,8 +57,8 @@ export function SortableStopCard({
                 stop={stop}
                 isOpen={isOpen}
                 className={
-                    isDragging
-                        ? "z-10 opacity-60 shadow-[0_24px_80px_rgba(23,15,7,0.16)]"
+                isDragging
+                        ? "z-20 opacity-0"
                         : isOver
                           ? "border-accent-500 ring-2 ring-brand-100"
                           : undefined

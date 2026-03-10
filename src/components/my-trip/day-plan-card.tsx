@@ -160,8 +160,8 @@ export function DayPlanCard({
             )}
         >
             <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <Button
                             type="button"
                             variant="ghost"
@@ -179,163 +179,194 @@ export function DayPlanCard({
                                 )}
                             />
                         </Button>
-                        <span>{t("dayLabel", { day: index + 1 })}</span>
+                        <span className="text-xl sm:text-2xl">
+                            {t("dayLabel", { day: index + 1 })}
+                        </span>
                     </div>
-                    <span className="rounded-full bg-brand-100 px-3 py-1 text-sm font-medium text-brand-900">
+                    <span className="w-fit rounded-full bg-brand-100 px-3 py-1 text-sm font-medium text-brand-900">
                         {dayPlan.date}
                     </span>
                 </CardTitle>
-                {isExpanded ? (
-                    <CardDescription>{t("dayDescription")}</CardDescription>
-                ) : null}
-            </CardHeader>
-            {isExpanded ? (
-            <CardContent className="space-y-8">
-                <Form {...taskForm}>
-                    <div>
-                        <h3 className="mb-4 text-lg font-semibold text-ink-strong">
-                            {t("checklistTitle")}
-                        </h3>
-                        <div className="flex gap-2">
-                            <FormField
-                                control={taskForm.control}
-                                name="taskDraft"
-                                render={({ field }) => (
-                                    <FormItem className="flex-1">
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder={t(
-                                                    "dayTaskPlaceholder",
-                                                )}
-                                                onChange={(event) => {
-                                                    field.onChange(event);
-                                                    onTaskDraftChange(
-                                                        event.target.value,
-                                                    );
-                                                }}
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="button" variant="outline" onClick={onAddTask}>
-                                {t("addChecklist")}
-                            </Button>
-                        </div>
-                        <div className="mt-4 space-y-3">
-                            {dayPlan.tasks.length > 0
-                                ? (
-                                dayPlan.tasks.map((task) => (
-                                    <div
-                                        key={task.id}
-                                        className="flex items-center gap-3 rounded-3xl border border-line-subtle bg-surface-raised px-4 py-4 text-sm text-ink-body"
-                                    >
-                                        <Checkbox
-                                            checked={task.done}
-                                            onCheckedChange={() =>
-                                                onToggleTask(task.id)
-                                            }
-                                        />
-                                        <span
-                                            className={
-                                                task.done
-                                                    ? "line-through opacity-60"
-                                                    : ""
-                                            }
-                                        >
-                                            {task.label}
-                                        </span>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() =>
-                                                onRemoveTask(task.id)
-                                            }
-                                            className="ml-auto text-highlight-strong hover:bg-red-50 hover:text-highlight-strong"
-                                            aria-label={t("deleteTask")}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))
-                                )
-                                : null}
-                        </div>
+                <div
+                    className={cn(
+                        "grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out",
+                        isExpanded
+                            ? "mt-2 grid-rows-[1fr] opacity-100"
+                            : "mt-0 grid-rows-[0fr] opacity-0",
+                    )}
+                >
+                    <div className="overflow-hidden">
+                        <CardDescription>{t("dayDescription")}</CardDescription>
                     </div>
-
-                    <div>
-                        <h3 className="mb-4 text-lg font-semibold text-ink-strong">
-                            {t("dayStopsTitle")}
-                        </h3>
-                        <div className="mt-4">
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={openAddStopModal}
-                                className="w-full md:w-auto md:px-6"
-                            >
-                                {t("addStop")}
-                            </Button>
-                        </div>
-                        <StopFormModal
-                            t={t}
-                            open={isStopModalOpen}
-                            onOpenChange={handleStopModalOpenChange}
-                            form={stopForm}
-                            mode={editingStopId ? "edit" : "add"}
-                            stopDraft={stopDraft}
-                            onStopDraftChange={onStopDraftChange}
-                            onLinkDraftChange={onLinkDraftChange}
-                            onAddLink={onAddLink}
-                            onRemoveDraftLink={onRemoveDraftLink}
-                            onSubmit={handleStopSubmit}
-                        />
-
-                        <div className="mt-6 space-y-4">
-                            <div
-                                className={cn(
-                                    "space-y-4 rounded-3xl transition",
-                                    dayPlan.stops.length === 0 &&
-                                        "min-h-24 border border-dashed border-line-subtle bg-surface-raised/40",
-                                    isOver &&
-                                        !isDraggingStop &&
-                                        "border-accent-500 bg-brand-50/40 ring-2 ring-brand-100",
-                                )}
-                            >
-                                <SortableContext
-                                    items={dayPlan.stops.map((stop) => stop.id)}
-                                    strategy={verticalListSortingStrategy}
-                                >
-                                    {dayPlan.stops.length > 0
-                                        ? dayPlan.stops.map((stop, stopIndex) => (
-                                              <SortableStopCard
-                                                  key={stop.id}
-                                                  t={t}
-                                                  dayDate={dayPlan.date}
-                                                  index={stopIndex}
-                                                  stop={stop}
-                                                  isOpen={isStopOpen(stop.id)}
-                                                  onToggleOpen={() =>
-                                                      onToggleStopOpen(stop.id)
-                                                  }
-                                                  onEdit={() =>
-                                                      openEditStopModal(stop)
-                                                  }
-                                                  onRemove={() =>
-                                                      onRemoveStop(stop.id)
-                                                  }
-                                              />
+                </div>
+            </CardHeader>
+            <div
+                className={cn(
+                    "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
+                    isExpanded
+                        ? "grid-rows-[1fr] opacity-100"
+                        : "grid-rows-[0fr] opacity-0",
+                )}
+            >
+                <div className="overflow-hidden">
+                    <CardContent className="space-y-6 pt-1 sm:space-y-8">
+                        <Form {...taskForm}>
+                            <div>
+                                <h3 className="mb-4 text-lg font-semibold text-ink-strong">
+                                    {t("checklistTitle")}
+                                </h3>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <FormField
+                                        control={taskForm.control}
+                                        name="taskDraft"
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1">
+                                                <FormControl>
+                                                    <Input
+                                                        {...field}
+                                                        placeholder={t(
+                                                            "dayTaskPlaceholder",
+                                                        )}
+                                                        onChange={(event) => {
+                                                            field.onChange(event);
+                                                            onTaskDraftChange(
+                                                                event.target.value,
+                                                            );
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={onAddTask}
+                                        className="w-full sm:w-auto"
+                                    >
+                                        {t("addChecklist")}
+                                    </Button>
+                                </div>
+                                <div className="mt-4 space-y-3">
+                                    {dayPlan.tasks.length > 0
+                                        ? dayPlan.tasks.map((task) => (
+                                              <div
+                                                  key={task.id}
+                                                  className="flex items-start gap-3 rounded-3xl border border-line-subtle bg-surface-raised px-4 py-4 text-sm text-ink-body sm:items-center"
+                                              >
+                                                  <Checkbox
+                                                      checked={task.done}
+                                                      onCheckedChange={() =>
+                                                          onToggleTask(task.id)
+                                                      }
+                                                      className="mt-0.5 sm:mt-0"
+                                                  />
+                                                  <span
+                                                      className={cn(
+                                                          "min-w-0 flex-1 leading-6",
+                                                          task.done
+                                                              ? "line-through opacity-60"
+                                                              : "",
+                                                      )}
+                                                  >
+                                                      {task.label}
+                                                  </span>
+                                                  <Button
+                                                      type="button"
+                                                      variant="ghost"
+                                                      size="icon"
+                                                      onClick={() =>
+                                                          onRemoveTask(task.id)
+                                                      }
+                                                      className="ml-auto text-highlight-strong hover:bg-red-50 hover:text-highlight-strong"
+                                                      aria-label={t("deleteTask")}
+                                                  >
+                                                      <Trash2 className="h-4 w-4" />
+                                                  </Button>
+                                              </div>
                                           ))
                                         : null}
-                                </SortableContext>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </Form>
-            </CardContent>
-            ) : null}
+
+                            <div>
+                                <h3 className="mb-4 text-lg font-semibold text-ink-strong">
+                                    {t("dayStopsTitle")}
+                                </h3>
+                                <div className="mt-4">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={openAddStopModal}
+                                        className="w-full sm:w-auto sm:px-6"
+                                    >
+                                        {t("addStop")}
+                                    </Button>
+                                </div>
+                                <StopFormModal
+                                    t={t}
+                                    open={isStopModalOpen}
+                                    onOpenChange={handleStopModalOpenChange}
+                                    form={stopForm}
+                                    mode={editingStopId ? "edit" : "add"}
+                                    stopDraft={stopDraft}
+                                    onStopDraftChange={onStopDraftChange}
+                                    onLinkDraftChange={onLinkDraftChange}
+                                    onAddLink={onAddLink}
+                                    onRemoveDraftLink={onRemoveDraftLink}
+                                    onSubmit={handleStopSubmit}
+                                />
+
+                                <div className="mt-6 space-y-4">
+                                    <div
+                                        className={cn(
+                                            "space-y-4 rounded-3xl transition",
+                                            dayPlan.stops.length === 0 &&
+                                                "min-h-24 border border-dashed border-line-subtle bg-surface-raised/40",
+                                            isOver &&
+                                                !isDraggingStop &&
+                                                "border-accent-500 bg-brand-50/40 ring-2 ring-brand-100",
+                                        )}
+                                    >
+                                        <SortableContext
+                                            items={dayPlan.stops.map((stop) => stop.id)}
+                                            strategy={verticalListSortingStrategy}
+                                        >
+                                            {dayPlan.stops.length > 0
+                                                ? dayPlan.stops.map((stop, stopIndex) => (
+                                                      <SortableStopCard
+                                                          key={stop.id}
+                                                          t={t}
+                                                          dayDate={dayPlan.date}
+                                                          index={stopIndex}
+                                                          stop={stop}
+                                                          isOpen={isStopOpen(stop.id)}
+                                                          onToggleOpen={() =>
+                                                              onToggleStopOpen(
+                                                                  stop.id,
+                                                              )
+                                                          }
+                                                          onEdit={() =>
+                                                              openEditStopModal(
+                                                                  stop,
+                                                              )
+                                                          }
+                                                          onRemove={() =>
+                                                              onRemoveStop(
+                                                                  stop.id,
+                                                              )
+                                                          }
+                                                      />
+                                                  ))
+                                                : null}
+                                        </SortableContext>
+                                    </div>
+                                </div>
+                            </div>
+                        </Form>
+                    </CardContent>
+                </div>
+            </div>
         </Card>
     );
 }

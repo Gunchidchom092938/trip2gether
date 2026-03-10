@@ -5,7 +5,8 @@ import {
     closestCorners,
     DndContext,
     DragOverlay,
-    PointerSensor,
+    MouseSensor,
+    TouchSensor,
     useSensor,
     useSensors,
     type DragEndEvent,
@@ -106,9 +107,15 @@ export default function MyTripPage() {
     } | null>(null);
 
     const sensors = useSensors(
-        useSensor(PointerSensor, {
+        useSensor(MouseSensor, {
             activationConstraint: {
                 distance: 8,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 150,
+                tolerance: 8,
             },
         }),
     );
@@ -652,15 +659,14 @@ export default function MyTripPage() {
                             </div>
                             <DragOverlay>
                                 {activeStop ? (
-                                    <div className="w-[min(100%,32rem)] rotate-1 shadow-[0_24px_80px_rgba(23,15,7,0.16)]">
+                                    <div className="pointer-events-none w-[min(100%,42rem)]">
                                         <StopCard
                                             t={t}
                                             index={activeStop.index}
                                             stop={activeStop.stop}
                                             isOpen={isStopOpen(activeStop.stop.id)}
-                                            onToggleOpen={() =>
-                                                toggleStopOpen(activeStop.stop.id)
-                                            }
+                                            className="shadow-[0_24px_80px_rgba(23,15,7,0.16)] ring-2 ring-brand-100"
+                                            onToggleOpen={() => undefined}
                                             onEdit={() => undefined}
                                             onRemove={() => undefined}
                                         />
