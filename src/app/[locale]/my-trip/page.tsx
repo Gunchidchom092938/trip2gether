@@ -1,158 +1,531 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
-
-import { Link } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-
-type Stop = {
-    id: string;
-    title: string;
-    date: string;
-    time: string;
-    note: string;
-    cost: number;
-};
-
-type ChecklistItem = {
-    id: string;
-    label: string;
-    done: boolean;
-};
-
-const createId = () => Math.random().toString(36).slice(2, 10);
-
-function SectionCard({
-    title,
-    description,
-    children,
-}: Readonly<{
-    title: string;
-    description?: string;
-    children: React.ReactNode;
-}>) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                {description ? <CardDescription>{description}</CardDescription> : null}
-            </CardHeader>
-            <CardContent>{children}</CardContent>
-        </Card>
-    );
-}
+    closestCorners,
+    DndContext,
+    DragOverlay,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+    type DragStartEvent,
+} from "@dnd-kit/core";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { StopCard } from "@/components/my-trip/stop-card";
+import { Button } from "@/components/ui/button";
+import { DayPlanCard } from "@/components/my-trip/day-plan-card";
+import { SectionCard } from "@/components/my-trip/section-card";
+import { TripOverviewForm } from "@/components/my-trip/trip-overview-form";
+import { TripSummaryCard } from "@/components/my-trip/trip-summary-card";
+import type { DayPlanMap, DraftStop, Stop } from "@/components/my-trip/types";
+import {
+    buildDateRange,
+    createEmptyDraftStop,
+    createId,
+} from "@/components/my-trip/utils";
 
 export default function MyTripPage() {
     const t = useTranslations("MyTrip");
 
-    const [tripName, setTripName] = useState(
-        t("defaultTripName"),
-    );
+    const [tripName, setTripName] = useState(t("defaultTripName"));
     const [owner, setOwner] = useState(t("defaultOwner"));
     const [startDate, setStartDate] = useState("2026-04-10");
     const [endDate, setEndDate] = useState("2026-04-14");
     const [budget, setBudget] = useState(35000);
     const [notes, setNotes] = useState(t("defaultNotes"));
-    const [stops, setStops] = useState<Stop[]>([
-        {
-            id: createId(),
-            title: t("sampleStopOneTitle"),
+    const [dayPlanMap, setDayPlanMap] = useState<DayPlanMap>({
+        "2026-04-10": {
             date: "2026-04-10",
-            time: "11:00",
-            note: t("sampleStopOneNote"),
-            cost: 2500,
+            tasks: [
+                {
+                    id: createId(),
+                    label: t("sampleChecklistOne"),
+                    done: true,
+                },
+            ],
+            stops: [
+                {
+                    id: createId(),
+                    title: t("sampleStopOneTitle"),
+                    startTime: "11:00",
+                    endTime: "14:00",
+                    note: t("sampleStopOneNote"),
+                    cost: 2500,
+                    image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=1200&auto=format&fit=crop",
+                    links: [
+                        {
+                            id: createId(),
+                            label: t("sampleLinkLabelOne"),
+                            url: "https://maps.google.com",
+                        },
+                    ],
+                },
+            ],
         },
-        {
-            id: createId(),
-            title: t("sampleStopTwoTitle"),
+        "2026-04-12": {
             date: "2026-04-12",
-            time: "07:30",
-            note: t("sampleStopTwoNote"),
-            cost: 4200,
+            tasks: [
+                {
+                    id: createId(),
+                    label: t("sampleChecklistTwo"),
+                    done: false,
+                },
+            ],
+            stops: [
+                {
+                    id: createId(),
+                    title: t("sampleStopTwoTitle"),
+                    startTime: "07:30",
+                    endTime: "18:30",
+                    note: t("sampleStopTwoNote"),
+                    cost: 4200,
+                    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop",
+                    links: [
+                        {
+                            id: createId(),
+                            label: t("sampleLinkLabelTwo"),
+                            url: "https://example.com/guide",
+                        },
+                    ],
+                },
+            ],
         },
-    ]);
-    const [checklist, setChecklist] = useState<ChecklistItem[]>([
-        {
-            id: createId(),
-            label: t("sampleChecklistOne"),
-            done: true,
-        },
-        {
-            id: createId(),
-            label: t("sampleChecklistTwo"),
-            done: false,
-        },
-    ]);
-    const [draftStop, setDraftStop] = useState({
-        title: "",
-        date: "",
-        time: "",
-        note: "",
-        cost: "",
     });
-    const [draftChecklist, setDraftChecklist] = useState("");
+    const [taskDrafts, setTaskDrafts] = useState<Record<string, string>>({});
+    const [stopDrafts, setStopDrafts] = useState<Record<string, DraftStop>>({});
+    const [linkDrafts, setLinkDrafts] = useState<
+        Record<string, { label: string; url: string }>
+    >({});
+    const [openStops, setOpenStops] = useState<Record<string, boolean>>({});
+    const [activeStop, setActiveStop] = useState<{
+        dayDate: string;
+        stop: Stop;
+        index: number;
+    } | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+    );
+
+    const dateRange = useMemo(
+        () => buildDateRange(startDate, endDate),
+        [startDate, endDate],
+    );
+
+    const dayPlans = useMemo(
+        () =>
+            dateRange.map(
+                (date) => dayPlanMap[date] ?? { date, tasks: [], stops: [] },
+            ),
+        [dateRange, dayPlanMap],
+    );
 
     const totalCost = useMemo(
-        () => stops.reduce((sum, stop) => sum + stop.cost, 0),
-        [stops],
+        () =>
+            dayPlans.reduce(
+                (sum, dayPlan) =>
+                    sum +
+                    dayPlan.stops.reduce(
+                        (daySum, stop) => daySum + stop.cost,
+                        0,
+                    ),
+                0,
+            ),
+        [dayPlans],
+    );
+    const totalStops = useMemo(
+        () => dayPlans.reduce((sum, dayPlan) => sum + dayPlan.stops.length, 0),
+        [dayPlans],
+    );
+    const totalTasks = useMemo(
+        () => dayPlans.reduce((sum, dayPlan) => sum + dayPlan.tasks.length, 0),
+        [dayPlans],
+    );
+    const completedTasks = useMemo(
+        () =>
+            dayPlans.reduce(
+                (sum, dayPlan) =>
+                    sum + dayPlan.tasks.filter((task) => task.done).length,
+                0,
+            ),
+        [dayPlans],
     );
     const remainingBudget = budget - totalCost;
-    const completedChecklist = checklist.filter((item) => item.done).length;
 
-    const addStop = () => {
-        if (!draftStop.title.trim() || !draftStop.date) return;
+    const addTask = (date: string) => {
+        const label = taskDrafts[date]?.trim();
+        if (!label) return;
 
-        setStops((current) => [
+        setDayPlanMap((current) => ({
             ...current,
-            {
-                id: createId(),
-                title: draftStop.title.trim(),
-                date: draftStop.date,
-                time: draftStop.time,
-                note: draftStop.note.trim(),
-                cost: Number(draftStop.cost) || 0,
+            [date]: {
+                ...(current[date] ?? { date, tasks: [], stops: [] }),
+                tasks: [
+                    ...(current[date]?.tasks ?? []),
+                    { id: createId(), label, done: false },
+                ],
+                stops: current[date]?.stops ?? [],
             },
-        ]);
-        setDraftStop({
-            title: "",
-            date: "",
-            time: "",
-            note: "",
-            cost: "",
+        }));
+        setTaskDrafts((current) => ({ ...current, [date]: "" }));
+    };
+
+    const updateTaskDraft = (date: string, value: string) => {
+        setTaskDrafts((current) => ({
+            ...current,
+            [date]: value,
+        }));
+    };
+
+    const toggleTask = (date: string, taskId: string) => {
+        setDayPlanMap((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? {
+                    date,
+                    tasks: [],
+                    stops: [],
+                }),
+                tasks: (current[date]?.tasks ?? []).map((currentTask) =>
+                    currentTask.id === taskId
+                        ? {
+                              ...currentTask,
+                              done: !currentTask.done,
+                          }
+                        : currentTask,
+                ),
+                stops: current[date]?.stops ?? [],
+            },
+        }));
+    };
+
+    const removeTask = (date: string, taskId: string) => {
+        setDayPlanMap((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? {
+                    date,
+                    tasks: [],
+                    stops: [],
+                }),
+                tasks: (current[date]?.tasks ?? []).filter(
+                    (task) => task.id !== taskId,
+                ),
+                stops: current[date]?.stops ?? [],
+            },
+        }));
+    };
+
+    const addLinkToDraft = (date: string) => {
+        const draft = linkDrafts[date];
+        if (!draft?.label.trim() || !draft.url.trim()) return;
+
+        setStopDrafts((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? createEmptyDraftStop()),
+                links: [
+                    ...(current[date]?.links ?? []),
+                    {
+                        id: createId(),
+                        label: draft.label.trim(),
+                        url: draft.url.trim(),
+                    },
+                ],
+            },
+        }));
+        setLinkDrafts((current) => ({
+            ...current,
+            [date]: { label: "", url: "" },
+        }));
+    };
+
+    const removeDraftLink = (date: string, linkId: string) => {
+        setStopDrafts((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? createEmptyDraftStop()),
+                links: (current[date]?.links ?? []).filter(
+                    (link) => link.id !== linkId,
+                ),
+            },
+        }));
+    };
+
+    const updateStopDraft = (date: string, patch: Partial<DraftStop>) => {
+        setStopDrafts((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? createEmptyDraftStop()),
+                ...patch,
+            },
+        }));
+    };
+
+    const updateLinkDraft = (
+        date: string,
+        patch: { label?: string; url?: string },
+    ) => {
+        setLinkDrafts((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? {
+                    label: "",
+                    url: "",
+                }),
+                ...patch,
+            },
+        }));
+    };
+
+    const resetStopDraft = (date: string) => {
+        setStopDrafts((current) => ({
+            ...current,
+            [date]: createEmptyDraftStop(),
+        }));
+        setLinkDrafts((current) => ({
+            ...current,
+            [date]: { label: "", url: "" },
+        }));
+    };
+
+    const startEditStop = (date: string, stop: Stop) => {
+        setStopDrafts((current) => ({
+            ...current,
+            [date]: {
+                title: stop.title,
+                startTime: stop.startTime,
+                endTime: stop.endTime,
+                note: stop.note,
+                cost: String(stop.cost),
+                image: stop.image,
+                links: stop.links,
+            },
+        }));
+        setLinkDrafts((current) => ({
+            ...current,
+            [date]: { label: "", url: "" },
+        }));
+    };
+
+    const addStop = (date: string) => {
+        const draft = stopDrafts[date] ?? createEmptyDraftStop();
+        if (!draft.title.trim()) return;
+
+        setDayPlanMap((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? { date, tasks: [], stops: [] }),
+                tasks: current[date]?.tasks ?? [],
+                stops: [
+                    ...(current[date]?.stops ?? []),
+                    {
+                        id: createId(),
+                        title: draft.title.trim(),
+                        startTime: draft.startTime,
+                        endTime: draft.endTime,
+                        note: draft.note.trim(),
+                        cost: Number(draft.cost) || 0,
+                        image: draft.image.trim(),
+                        links: draft.links,
+                    },
+                ],
+            },
+        }));
+        setStopDrafts((current) => ({
+            ...current,
+            [date]: createEmptyDraftStop(),
+        }));
+        setLinkDrafts((current) => ({
+            ...current,
+            [date]: { label: "", url: "" },
+        }));
+    };
+
+    const updateStop = (date: string, stopId: string) => {
+        const draft = stopDrafts[date] ?? createEmptyDraftStop();
+        if (!draft.title.trim()) return;
+
+        setDayPlanMap((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? { date, tasks: [], stops: [] }),
+                tasks: current[date]?.tasks ?? [],
+                stops: (current[date]?.stops ?? []).map((stop) =>
+                    stop.id === stopId
+                        ? {
+                              ...stop,
+                              title: draft.title.trim(),
+                              startTime: draft.startTime,
+                              endTime: draft.endTime,
+                              note: draft.note.trim(),
+                              cost: Number(draft.cost) || 0,
+                              image: draft.image.trim(),
+                              links: draft.links,
+                          }
+                        : stop,
+                ),
+            },
+        }));
+        setStopDrafts((current) => ({
+            ...current,
+            [date]: createEmptyDraftStop(),
+        }));
+        setLinkDrafts((current) => ({
+            ...current,
+            [date]: { label: "", url: "" },
+        }));
+    };
+
+    const removeStop = (date: string, stopId: string) => {
+        setDayPlanMap((current) => ({
+            ...current,
+            [date]: {
+                ...(current[date] ?? { date, tasks: [], stops: [] }),
+                tasks: current[date]?.tasks ?? [],
+                stops: (current[date]?.stops ?? []).filter(
+                    (stop) => stop.id !== stopId,
+                ),
+            },
+        }));
+    };
+
+    const moveStop = (
+        sourceDate: string,
+        stopId: string,
+        targetDate: string,
+        targetIndex: number,
+    ) => {
+        setDayPlanMap((current) => {
+            const sourceDay = current[sourceDate] ?? {
+                date: sourceDate,
+                tasks: [],
+                stops: [],
+            };
+            const targetDay = current[targetDate] ?? {
+                date: targetDate,
+                tasks: [],
+                stops: [],
+            };
+            const sourceIndex = sourceDay.stops.findIndex(
+                (stop) => stop.id === stopId,
+            );
+
+            if (sourceIndex === -1) return current;
+
+            const stopToMove = sourceDay.stops[sourceIndex];
+            const nextSourceStops = sourceDay.stops.filter(
+                (stop) => stop.id !== stopId,
+            );
+
+            const baseTargetStops =
+                sourceDate === targetDate ? nextSourceStops : targetDay.stops;
+            const normalizedTargetIndex = Math.max(
+                0,
+                Math.min(targetIndex, baseTargetStops.length),
+            );
+            const adjustedTargetIndex =
+                sourceDate === targetDate && sourceIndex < normalizedTargetIndex
+                    ? normalizedTargetIndex - 1
+                    : normalizedTargetIndex;
+            const nextTargetStops = [...baseTargetStops];
+
+            nextTargetStops.splice(adjustedTargetIndex, 0, stopToMove);
+
+            return {
+                ...current,
+                [sourceDate]: {
+                    ...sourceDay,
+                    stops:
+                        sourceDate === targetDate
+                            ? nextTargetStops
+                            : nextSourceStops,
+                },
+                [targetDate]: {
+                    ...targetDay,
+                    stops: nextTargetStops,
+                },
+            };
         });
     };
 
-    const addChecklistItem = () => {
-        if (!draftChecklist.trim()) return;
+    const isStopOpen = (stopId: string) => openStops[stopId] ?? false;
 
-        setChecklist((current) => [
+    const toggleStopOpen = (stopId: string) => {
+        setOpenStops((current) => ({
             ...current,
-            {
-                id: createId(),
-                label: draftChecklist.trim(),
-                done: false,
-            },
-        ]);
-        setDraftChecklist("");
+            [stopId]: !(current[stopId] ?? true),
+        }));
+    };
+
+    const handleDragStart = (event: DragStartEvent) => {
+        const data = event.active.data.current;
+
+        if (data?.type !== "stop") return;
+
+        setActiveStop({
+            dayDate: String(data.date),
+            stop: data.stop as Stop,
+            index: Number(data.index ?? 0),
+        });
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        setActiveStop(null);
+
+        if (!over) return;
+
+        const activeData = active.data.current;
+        const overData = over.data.current;
+
+        if (activeData?.type !== "stop") return;
+
+        const sourceDate = String(activeData.date);
+        const stopId = String(active.id);
+
+        if (overData?.type === "stop") {
+            moveStop(
+                sourceDate,
+                stopId,
+                String(overData.date),
+                Number(overData.index),
+            );
+            return;
+        }
+
+        if (overData?.type === "day") {
+            const targetDate = String(overData.date);
+            const targetStops = dayPlanMap[targetDate]?.stops ?? [];
+
+            moveStop(sourceDate, stopId, targetDate, targetStops.length);
+        }
+    };
+
+    const handleDragCancel = () => {
+        setActiveStop(null);
     };
 
     return (
         <main className="min-h-screen bg-surface-base text-ink-strong">
             <section className="border-b border-line-subtle bg-[radial-gradient(circle_at_top_left,rgba(220,155,28,0.18),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(75,46,18,0.12),transparent_30%)]">
                 <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
-                    <Link href="/" className="inline-flex items-center">
-                        <Button variant="outline" size="sm" asChild>
+                    <Link
+                        href="/"
+                        className="inline-flex items-center"
+                    >
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                        >
                             <span>{t("back")}</span>
                         </Button>
                     </Link>
@@ -177,353 +550,142 @@ export default function MyTripPage() {
                         title={t("tripOverview")}
                         description={t("tripOverviewDescription")}
                     >
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <label className="space-y-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("tripName")}
-                                </span>
-                                <Input
-                                    value={tripName}
-                                    onChange={(event) =>
-                                        setTripName(event.target.value)
-                                    }
-                                    placeholder={t("tripNamePlaceholder")}
-                                />
-                            </label>
-                            <label className="space-y-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("owner")}
-                                </span>
-                                <Input
-                                    value={owner}
-                                    onChange={(event) =>
-                                        setOwner(event.target.value)
-                                    }
-                                />
-                            </label>
-                            <label className="space-y-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("startDate")}
-                                </span>
-                                <Input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(event) =>
-                                        setStartDate(event.target.value)
-                                    }
-                                />
-                            </label>
-                            <label className="space-y-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("endDate")}
-                                </span>
-                                <Input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(event) =>
-                                        setEndDate(event.target.value)
-                                    }
-                                />
-                            </label>
-                            <label className="space-y-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("budget")}
-                                </span>
-                                <Input
-                                    type="number"
-                                    value={budget}
-                                    onChange={(event) =>
-                                        setBudget(Number(event.target.value) || 0)
-                                    }
-                                />
-                            </label>
-                            <label className="space-y-2 md:col-span-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("notes")}
-                                </span>
-                                <Textarea
-                                    value={notes}
-                                    onChange={(event) =>
-                                        setNotes(event.target.value)
-                                    }
-                                    placeholder={t("notesPlaceholder")}
-                                />
-                            </label>
-                        </div>
+                        <TripOverviewForm
+                            t={t}
+                            tripName={tripName}
+                            owner={owner}
+                            startDate={startDate}
+                            endDate={endDate}
+                            budget={budget}
+                            notes={notes}
+                            onTripNameChange={setTripName}
+                            onOwnerChange={setOwner}
+                            onStartDateChange={setStartDate}
+                            onEndDateChange={setEndDate}
+                            onBudgetChange={setBudget}
+                            onNotesChange={setNotes}
+                        />
                     </SectionCard>
 
                     <SectionCard
-                        title={t("itineraryTitle")}
-                        description={t("itineraryDescription")}
+                        title={t("daysTitle")}
+                        description={t("daysDescription")}
                     >
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <label className="space-y-2 md:col-span-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("stopTitle")}
-                                </span>
-                                <Input
-                                    value={draftStop.title}
-                                    onChange={(event) =>
-                                        setDraftStop((current) => ({
-                                            ...current,
-                                            title: event.target.value,
-                                        }))
-                                    }
-                                    placeholder={t("stopTitlePlaceholder")}
-                                />
-                            </label>
-                            <label className="space-y-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("stopDate")}
-                                </span>
-                                <Input
-                                    type="date"
-                                    value={draftStop.date}
-                                    onChange={(event) =>
-                                        setDraftStop((current) => ({
-                                            ...current,
-                                            date: event.target.value,
-                                        }))
-                                    }
-                                />
-                            </label>
-                            <label className="space-y-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("stopTime")}
-                                </span>
-                                <Input
-                                    type="time"
-                                    value={draftStop.time}
-                                    onChange={(event) =>
-                                        setDraftStop((current) => ({
-                                            ...current,
-                                            time: event.target.value,
-                                        }))
-                                    }
-                                />
-                            </label>
-                            <label className="space-y-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("stopCost")}
-                                </span>
-                                <Input
-                                    type="number"
-                                    value={draftStop.cost}
-                                    onChange={(event) =>
-                                        setDraftStop((current) => ({
-                                            ...current,
-                                            cost: event.target.value,
-                                        }))
-                                    }
-                                />
-                            </label>
-                            <label className="space-y-2 md:col-span-2">
-                                <span className="text-sm font-medium text-ink-body">
-                                    {t("stopNote")}
-                                </span>
-                                <Textarea
-                                    value={draftStop.note}
-                                    onChange={(event) =>
-                                        setDraftStop((current) => ({
-                                            ...current,
-                                            note: event.target.value,
-                                        }))
-                                    }
-                                    placeholder={t("stopNotePlaceholder")}
-                                    className="min-h-24"
-                                />
-                            </label>
-                        </div>
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCorners}
+                            onDragStart={handleDragStart}
+                            onDragEnd={handleDragEnd}
+                            onDragCancel={handleDragCancel}
+                        >
+                            <div className="space-y-6">
+                                {dayPlans.map((dayPlan, index) => {
+                                    const stopDraft =
+                                        stopDrafts[dayPlan.date] ??
+                                        createEmptyDraftStop();
+                                    const linkDraft = linkDrafts[dayPlan.date] ?? {
+                                        label: "",
+                                        url: "",
+                                    };
 
-                        <div className="mt-4">
-                            <Button
-                                variant="secondary"
-                                onClick={addStop}
-                                className="w-full md:w-auto md:px-6"
-                            >
-                                {t("addStop")}
-                            </Button>
-                        </div>
-
-                        <div className="mt-8 space-y-4">
-                            <h3 className="text-lg font-semibold text-ink-strong">
-                                {t("tripStops")}
-                            </h3>
-                            {stops.length === 0 ? (
-                                <p className="rounded-3xl border border-dashed border-line-subtle bg-surface-soft px-4 py-5 text-sm text-ink-body">
-                                    {t("noStops")}
-                                </p>
-                            ) : (
-                                stops.map((stop) => (
-                                    <article
-                                        key={stop.id}
-                                        className="rounded-3xl border border-line-subtle bg-surface-soft p-4"
-                                    >
-                                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                                            <div>
-                                                <h4 className="text-lg font-semibold text-ink-strong">
-                                                    {stop.title}
-                                                </h4>
-                                                <p className="mt-1 text-sm text-ink-body">
-                                                    {stop.date} {stop.time}
-                                                </p>
-                                            </div>
-                                            <p className="rounded-full bg-brand-100 px-3 py-2 text-sm font-semibold text-brand-900">
-                                                {t("budgetUnit")}{" "}
-                                                {stop.cost.toLocaleString()}
-                                            </p>
-                                        </div>
-                                        {stop.note ? (
-                                            <p className="mt-3 text-sm leading-6 text-ink-body">
-                                                {stop.note}
-                                            </p>
-                                        ) : null}
-                                    </article>
-                                ))
-                            )}
-                        </div>
+                                    return (
+                                        <DayPlanCard
+                                            key={dayPlan.date}
+                                            t={t}
+                                            index={index}
+                                            dayPlan={dayPlan}
+                                            taskDraft={
+                                                taskDrafts[dayPlan.date] ?? ""
+                                            }
+                                            stopDraft={stopDraft}
+                                            linkDraft={linkDraft}
+                                            onTaskDraftChange={(value) =>
+                                                updateTaskDraft(dayPlan.date, value)
+                                            }
+                                            onAddTask={() => addTask(dayPlan.date)}
+                                            onToggleTask={(taskId) =>
+                                                toggleTask(dayPlan.date, taskId)
+                                            }
+                                            onRemoveTask={(taskId) =>
+                                                removeTask(dayPlan.date, taskId)
+                                            }
+                                            onStopDraftChange={(patch) =>
+                                                updateStopDraft(
+                                                    dayPlan.date,
+                                                    patch,
+                                                )
+                                            }
+                                            onLinkDraftChange={(patch) =>
+                                                updateLinkDraft(
+                                                    dayPlan.date,
+                                                    patch,
+                                                )
+                                            }
+                                            onAddLink={() =>
+                                                addLinkToDraft(dayPlan.date)
+                                            }
+                                            onRemoveDraftLink={(linkId) =>
+                                                removeDraftLink(
+                                                    dayPlan.date,
+                                                    linkId,
+                                                )
+                                            }
+                                            onResetStopDraft={() =>
+                                                resetStopDraft(dayPlan.date)
+                                            }
+                                            onStartEditStop={(stop) =>
+                                                startEditStop(dayPlan.date, stop)
+                                            }
+                                            onAddStop={() => addStop(dayPlan.date)}
+                                            onUpdateStop={(stopId) =>
+                                                updateStop(dayPlan.date, stopId)
+                                            }
+                                            onRemoveStop={(stopId) =>
+                                                removeStop(dayPlan.date, stopId)
+                                            }
+                                            isStopOpen={isStopOpen}
+                                            onToggleStopOpen={toggleStopOpen}
+                                            isDraggingStop={activeStop !== null}
+                                        />
+                                    );
+                                })}
+                            </div>
+                            <DragOverlay>
+                                {activeStop ? (
+                                    <div className="w-[min(100%,32rem)] rotate-1 shadow-[0_24px_80px_rgba(23,15,7,0.16)]">
+                                        <StopCard
+                                            t={t}
+                                            index={activeStop.index}
+                                            stop={activeStop.stop}
+                                            isOpen={isStopOpen(activeStop.stop.id)}
+                                            onToggleOpen={() =>
+                                                toggleStopOpen(activeStop.stop.id)
+                                            }
+                                            onEdit={() => undefined}
+                                            onRemove={() => undefined}
+                                        />
+                                    </div>
+                                ) : null}
+                            </DragOverlay>
+                        </DndContext>
                     </SectionCard>
                 </div>
 
                 <div className="space-y-6">
                     <SectionCard title={t("tripOverview")}>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="rounded-3xl bg-surface-soft p-4">
-                                <p className="text-sm text-ink-body">
-                                    {t("totalStops")}
-                                </p>
-                                <p className="mt-2 text-3xl font-semibold">
-                                    {stops.length}
-                                </p>
-                            </div>
-                            <div className="rounded-3xl bg-surface-soft p-4">
-                                <p className="text-sm text-ink-body">
-                                    {t("checklistProgress")}
-                                </p>
-                                <p className="mt-2 text-3xl font-semibold">
-                                    {completedChecklist}/{checklist.length}
-                                </p>
-                            </div>
-                            <div className="rounded-3xl bg-surface-soft p-4">
-                                <p className="text-sm text-ink-body">
-                                    {t("totalCost")}
-                                </p>
-                                <p className="mt-2 text-3xl font-semibold">
-                                    {totalCost.toLocaleString()}
-                                </p>
-                            </div>
-                            <div className="rounded-3xl bg-surface-soft p-4">
-                                <p className="text-sm text-ink-body">
-                                    {t("remainingBudget")}
-                                </p>
-                                <p
-                                    className={`mt-2 text-3xl font-semibold ${
-                                        remainingBudget < 0
-                                            ? "text-highlight-strong"
-                                            : ""
-                                    }`}
-                                >
-                                    {remainingBudget.toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 rounded-3xl border border-line-subtle bg-surface-soft p-4 text-sm leading-7 text-ink-body">
-                            <p>
-                                <span className="font-semibold text-ink-strong">
-                                    {t("tripName")}:
-                                </span>{" "}
-                                {tripName}
-                            </p>
-                            <p>
-                                <span className="font-semibold text-ink-strong">
-                                    {t("owner")}:
-                                </span>{" "}
-                                {owner}
-                            </p>
-                            <p>
-                                <span className="font-semibold text-ink-strong">
-                                    {t("startDate")}:
-                                </span>{" "}
-                                {startDate}
-                            </p>
-                            <p>
-                                <span className="font-semibold text-ink-strong">
-                                    {t("endDate")}:
-                                </span>{" "}
-                                {endDate}
-                            </p>
-                            <p>
-                                <span className="font-semibold text-ink-strong">
-                                    {t("budget")}:
-                                </span>{" "}
-                                {budget.toLocaleString()} {t("budgetUnit")}
-                            </p>
-                        </div>
-                    </SectionCard>
-
-                    <SectionCard
-                        title={t("checklistTitle")}
-                        description={t("checklistDescription")}
-                    >
-                        <div className="flex gap-2">
-                            <Input
-                                value={draftChecklist}
-                                onChange={(event) =>
-                                    setDraftChecklist(event.target.value)
-                                }
-                                placeholder={t("checklistPlaceholder")}
-                            />
-                            <Button
-                                variant="outline"
-                                onClick={addChecklistItem}
-                                className="w-auto px-5"
-                            >
-                                {t("addChecklist")}
-                            </Button>
-                        </div>
-
-                        <div className="mt-6 space-y-3">
-                            {checklist.length === 0 ? (
-                                <p className="rounded-3xl border border-dashed border-line-subtle bg-surface-soft px-4 py-5 text-sm text-ink-body">
-                                    {t("emptyChecklist")}
-                                </p>
-                            ) : (
-                                checklist.map((item) => (
-                                    <label
-                                        key={item.id}
-                                        className="flex items-center gap-3 rounded-3xl border border-line-subtle bg-surface-soft px-4 py-4 text-sm text-ink-body"
-                                    >
-                                        <Checkbox
-                                            checked={item.done}
-                                            onChange={() =>
-                                                setChecklist((current) =>
-                                                    current.map(
-                                                        (currentItem) =>
-                                                            currentItem.id ===
-                                                            item.id
-                                                                ? {
-                                                                      ...currentItem,
-                                                                      done: !currentItem.done,
-                                                                  }
-                                                                : currentItem,
-                                                    ),
-                                                )
-                                            }
-                                        />
-                                        <span
-                                            className={
-                                                item.done
-                                                    ? "line-through opacity-60"
-                                                    : ""
-                                            }
-                                        >
-                                            {item.label}
-                                        </span>
-                                    </label>
-                                ))
-                            )}
-                        </div>
+                        <TripSummaryCard
+                            t={t}
+                            tripName={tripName}
+                            owner={owner}
+                            startDate={startDate}
+                            endDate={endDate}
+                            budget={budget}
+                            totalStops={totalStops}
+                            completedTasks={completedTasks}
+                            totalTasks={totalTasks}
+                            totalCost={totalCost}
+                            remainingBudget={remainingBudget}
+                        />
                     </SectionCard>
 
                     <div className="grid gap-3 sm:grid-cols-2">
