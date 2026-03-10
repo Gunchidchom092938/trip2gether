@@ -1,3 +1,4 @@
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -55,22 +56,20 @@ export function TripOverviewForm({
                 <span className="text-sm font-medium text-ink-body">
                     {t("startDate")}
                 </span>
-                <Input
-                    type="date"
-                    className="mx-auto min-w-0 w-[88%] max-w-[88%] sm:mx-0 sm:w-full sm:max-w-full"
+                <DatePicker
                     value={startDate}
-                    onChange={(event) => onStartDateChange(event.target.value)}
+                    onChange={onStartDateChange}
+                    placeholder={t("startDate")}
                 />
             </label>
             <label className="min-w-0 space-y-2">
                 <span className="text-sm font-medium text-ink-body">
                     {t("endDate")}
                 </span>
-                <Input
-                    type="date"
-                    className="mx-auto min-w-0 w-[88%] max-w-[88%] sm:mx-0 sm:w-full sm:max-w-full"
+                <DatePicker
                     value={endDate}
-                    onChange={(event) => onEndDateChange(event.target.value)}
+                    onChange={onEndDateChange}
+                    placeholder={t("endDate")}
                 />
             </label>
             <label className="min-w-0 space-y-2">
