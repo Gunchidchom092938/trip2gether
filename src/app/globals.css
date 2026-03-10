@@ -1,26 +1,79 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6efe4;
+  --foreground: #241815;
+  --surface-base: #f6efe4;
+  --surface-panel: #fff8ed;
+  --surface-raised: #ffffff;
+  --surface-soft: #fffaf2;
+  --ink-strong: #241815;
+  --ink-body: #5f5148;
+  --ink-inverse: #fffdf8;
+  --line-subtle: rgba(36, 24, 21, 0.12);
+  --brand-50: #fff4dc;
+  --brand-100: #ffe5b8;
+  --brand-300: #f3c667;
+  --brand-500: #dc9b1c;
+  --brand-700: #8b5a14;
+  --brand-900: #4b2e12;
+  --accent-500: #241815;
+  --accent-700: #3b2a24;
+  --highlight-soft: #fff1f2;
+  --highlight-strong: #be3455;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface-base: var(--surface-base);
+  --color-surface-panel: var(--surface-panel);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-soft: var(--surface-soft);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-body: var(--ink-body);
+  --color-ink-inverse: var(--ink-inverse);
+  --color-line-subtle: var(--line-subtle);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-300: var(--brand-300);
+  --color-brand-500: var(--brand-500);
+  --color-brand-700: var(--brand-700);
+  --color-brand-900: var(--brand-900);
+  --color-accent-500: var(--accent-500);
+  --color-accent-700: var(--accent-700);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-highlight-strong: var(--highlight-strong);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
+  min-height: 100vh;
+}
+
+a,
+button,
+input {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--brand-300) 55%, transparent);
 }
