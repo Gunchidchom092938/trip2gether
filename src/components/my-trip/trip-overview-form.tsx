@@ -32,7 +32,7 @@ export function TripOverviewForm({
 }>) {
     return (
         <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2">
+            <label className="min-w-0 space-y-2">
                 <span className="text-sm font-medium text-ink-body">
                     {t("tripName")}
                 </span>
@@ -42,7 +42,7 @@ export function TripOverviewForm({
                     placeholder={t("tripNamePlaceholder")}
                 />
             </label>
-            <label className="space-y-2">
+            <label className="min-w-0 space-y-2">
                 <span className="text-sm font-medium text-ink-body">
                     {t("owner")}
                 </span>
@@ -51,27 +51,29 @@ export function TripOverviewForm({
                     onChange={(event) => onOwnerChange(event.target.value)}
                 />
             </label>
-            <label className="space-y-2">
+            <label className="min-w-0 space-y-2">
                 <span className="text-sm font-medium text-ink-body">
                     {t("startDate")}
                 </span>
                 <Input
                     type="date"
+                    className="mx-auto min-w-0 w-[88%] max-w-[88%] sm:mx-0 sm:w-full sm:max-w-full"
                     value={startDate}
                     onChange={(event) => onStartDateChange(event.target.value)}
                 />
             </label>
-            <label className="space-y-2">
+            <label className="min-w-0 space-y-2">
                 <span className="text-sm font-medium text-ink-body">
                     {t("endDate")}
                 </span>
                 <Input
                     type="date"
+                    className="mx-auto min-w-0 w-[88%] max-w-[88%] sm:mx-0 sm:w-full sm:max-w-full"
                     value={endDate}
                     onChange={(event) => onEndDateChange(event.target.value)}
                 />
             </label>
-            <label className="space-y-2">
+            <label className="min-w-0 space-y-2">
                 <span className="text-sm font-medium text-ink-body">
                     {t("budget")}
                 </span>
@@ -83,7 +85,7 @@ export function TripOverviewForm({
                     }
                 />
             </label>
-            <label className="space-y-2 md:col-span-2">
+            <label className="min-w-0 space-y-2 md:col-span-2">
                 <span className="text-sm font-medium text-ink-body">
                     {t("notes")}
                 </span>
