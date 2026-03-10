@@ -3,8 +3,18 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
-import { ActionButton } from "@/components/action-button";
 import { Link } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 type Stop = {
     id: string;
@@ -33,19 +43,13 @@ function SectionCard({
     children: React.ReactNode;
 }>) {
     return (
-        <section className="rounded-[2rem] border border-line-subtle bg-surface-raised p-6 shadow-[0_20px_60px_rgba(23,15,7,0.08)]">
-            <div className="mb-6">
-                <h2 className="text-2xl font-semibold tracking-tight text-ink-strong">
-                    {title}
-                </h2>
-                {description ? (
-                    <p className="mt-2 text-sm leading-6 text-ink-body">
-                        {description}
-                    </p>
-                ) : null}
-            </div>
-            {children}
-        </section>
+        <Card>
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+                {description ? <CardDescription>{description}</CardDescription> : null}
+            </CardHeader>
+            <CardContent>{children}</CardContent>
+        </Card>
     );
 }
 
@@ -147,11 +151,10 @@ export default function MyTripPage() {
         <main className="min-h-screen bg-surface-base text-ink-strong">
             <section className="border-b border-line-subtle bg-[radial-gradient(circle_at_top_left,rgba(220,155,28,0.18),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(75,46,18,0.12),transparent_30%)]">
                 <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
-                    <Link
-                        href="/"
-                        className="inline-flex items-center rounded-full border border-line-subtle bg-surface-raised px-4 py-2 text-sm font-medium text-ink-body transition hover:border-accent-500 hover:text-ink-strong"
-                    >
-                        {t("back")}
+                    <Link href="/" className="inline-flex items-center">
+                        <Button variant="outline" size="sm" asChild>
+                            <span>{t("back")}</span>
+                        </Button>
                     </Link>
 
                     <div className="mt-6 max-w-3xl">
@@ -179,77 +182,71 @@ export default function MyTripPage() {
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("tripName")}
                                 </span>
-                                <input
+                                <Input
                                     value={tripName}
                                     onChange={(event) =>
                                         setTripName(event.target.value)
                                     }
                                     placeholder={t("tripNamePlaceholder")}
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("owner")}
                                 </span>
-                                <input
+                                <Input
                                     value={owner}
                                     onChange={(event) =>
                                         setOwner(event.target.value)
                                     }
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("startDate")}
                                 </span>
-                                <input
+                                <Input
                                     type="date"
                                     value={startDate}
                                     onChange={(event) =>
                                         setStartDate(event.target.value)
                                     }
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("endDate")}
                                 </span>
-                                <input
+                                <Input
                                     type="date"
                                     value={endDate}
                                     onChange={(event) =>
                                         setEndDate(event.target.value)
                                     }
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("budget")}
                                 </span>
-                                <input
+                                <Input
                                     type="number"
                                     value={budget}
                                     onChange={(event) =>
                                         setBudget(Number(event.target.value) || 0)
                                     }
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2 md:col-span-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("notes")}
                                 </span>
-                                <textarea
+                                <Textarea
                                     value={notes}
                                     onChange={(event) =>
                                         setNotes(event.target.value)
                                     }
                                     placeholder={t("notesPlaceholder")}
-                                    className="min-h-28 w-full rounded-3xl border border-line-subtle bg-surface-soft px-4 py-3 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                         </div>
@@ -264,7 +261,7 @@ export default function MyTripPage() {
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("stopTitle")}
                                 </span>
-                                <input
+                                <Input
                                     value={draftStop.title}
                                     onChange={(event) =>
                                         setDraftStop((current) => ({
@@ -273,14 +270,13 @@ export default function MyTripPage() {
                                         }))
                                     }
                                     placeholder={t("stopTitlePlaceholder")}
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("stopDate")}
                                 </span>
-                                <input
+                                <Input
                                     type="date"
                                     value={draftStop.date}
                                     onChange={(event) =>
@@ -289,14 +285,13 @@ export default function MyTripPage() {
                                             date: event.target.value,
                                         }))
                                     }
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("stopTime")}
                                 </span>
-                                <input
+                                <Input
                                     type="time"
                                     value={draftStop.time}
                                     onChange={(event) =>
@@ -305,14 +300,13 @@ export default function MyTripPage() {
                                             time: event.target.value,
                                         }))
                                     }
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("stopCost")}
                                 </span>
-                                <input
+                                <Input
                                     type="number"
                                     value={draftStop.cost}
                                     onChange={(event) =>
@@ -321,14 +315,13 @@ export default function MyTripPage() {
                                             cost: event.target.value,
                                         }))
                                     }
-                                    className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                                 />
                             </label>
                             <label className="space-y-2 md:col-span-2">
                                 <span className="text-sm font-medium text-ink-body">
                                     {t("stopNote")}
                                 </span>
-                                <textarea
+                                <Textarea
                                     value={draftStop.note}
                                     onChange={(event) =>
                                         setDraftStop((current) => ({
@@ -337,18 +330,19 @@ export default function MyTripPage() {
                                         }))
                                     }
                                     placeholder={t("stopNotePlaceholder")}
-                                    className="min-h-24 w-full rounded-3xl border border-line-subtle bg-surface-soft px-4 py-3 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                                    className="min-h-24"
                                 />
                             </label>
                         </div>
 
                         <div className="mt-4">
-                            <ActionButton
-                                color="amber"
-                                label={t("addStop")}
+                            <Button
+                                variant="secondary"
                                 onClick={addStop}
                                 className="w-full md:w-auto md:px-6"
-                            />
+                            >
+                                {t("addStop")}
+                            </Button>
                         </div>
 
                         <div className="mt-8 space-y-4">
@@ -473,20 +467,20 @@ export default function MyTripPage() {
                         description={t("checklistDescription")}
                     >
                         <div className="flex gap-2">
-                            <input
+                            <Input
                                 value={draftChecklist}
                                 onChange={(event) =>
                                     setDraftChecklist(event.target.value)
                                 }
                                 placeholder={t("checklistPlaceholder")}
-                                className="h-12 flex-1 rounded-2xl border border-line-subtle bg-surface-soft px-4 text-sm text-ink-strong outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                             />
-                            <ActionButton
-                                color="light"
-                                label={t("addChecklist")}
+                            <Button
+                                variant="outline"
                                 onClick={addChecklistItem}
                                 className="w-auto px-5"
-                            />
+                            >
+                                {t("addChecklist")}
+                            </Button>
                         </div>
 
                         <div className="mt-6 space-y-3">
@@ -500,8 +494,7 @@ export default function MyTripPage() {
                                         key={item.id}
                                         className="flex items-center gap-3 rounded-3xl border border-line-subtle bg-surface-soft px-4 py-4 text-sm text-ink-body"
                                     >
-                                        <input
-                                            type="checkbox"
+                                        <Checkbox
                                             checked={item.done}
                                             onChange={() =>
                                                 setChecklist((current) =>
@@ -517,7 +510,6 @@ export default function MyTripPage() {
                                                     ),
                                                 )
                                             }
-                                            className="h-4 w-4 rounded border-line-subtle text-brand-500 focus:ring-brand-500"
                                         />
                                         <span
                                             className={
@@ -535,8 +527,8 @@ export default function MyTripPage() {
                     </SectionCard>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                        <ActionButton color="light" label={t("saveDraft")} />
-                        <ActionButton color="dark" label={t("publishTrip")} />
+                        <Button variant="outline">{t("saveDraft")}</Button>
+                        <Button>{t("publishTrip")}</Button>
                     </div>
                 </div>
             </div>

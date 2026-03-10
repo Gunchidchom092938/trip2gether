@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { Menu } from "lucide-react";
 
 import { ActionButton } from "@/components/action-button";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import type { AppLocale } from "@/i18n/routing";
 
 const featuredTripsByLocale: Record<
@@ -116,16 +121,16 @@ function SearchForm({
                 onSubmit();
             }}
         >
-            <input
+            <Input
                 type="search"
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
                 className={inputClassName}
             />
-            <button type="submit" className={buttonClassName}>
+            <Button type="submit" className={buttonClassName}>
                 {buttonLabel}
-            </button>
+            </Button>
         </form>
     );
 }
@@ -169,9 +174,11 @@ export default function HomePage() {
                             </a>
                             <div className="flex items-center gap-2 md:hidden">
                                 <div className="flex items-center rounded-full border border-line-subtle bg-surface-raised p-1">
-                                    <button
+                                    <Button
                                         type="button"
                                         onClick={() => handleLocaleChange("en")}
+                                        variant="ghost"
+                                        size="sm"
                                         className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
                                             locale === "en"
                                                 ? "bg-brand-500 text-ink-strong"
@@ -179,10 +186,12 @@ export default function HomePage() {
                                         }`}
                                     >
                                         {t("languageEnglish")}
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         type="button"
                                         onClick={() => handleLocaleChange("th")}
+                                        variant="ghost"
+                                        size="sm"
                                         className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
                                             locale === "th"
                                                 ? "bg-brand-500 text-ink-strong"
@@ -190,18 +199,63 @@ export default function HomePage() {
                                         }`}
                                     >
                                         {t("languageThai")}
-                                    </button>
+                                    </Button>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setIsMobileMenuOpen((value) => !value)
-                                    }
-                                    aria-label="Toggle navigation menu"
-                                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line-subtle bg-surface-raised text-2xl leading-none text-ink-strong transition hover:border-accent-500"
+                                <Sheet
+                                    open={isMobileMenuOpen}
+                                    onOpenChange={setIsMobileMenuOpen}
                                 >
-                                    {isMobileMenuOpen ? "×" : "≡"}
-                                </button>
+                                    <SheetTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label="Toggle navigation menu"
+                                        >
+                                            <Menu className="h-5 w-5" />
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent className="w-[88vw] max-w-sm bg-surface-panel px-6 py-16 md:hidden">
+                                        <nav className="flex flex-col gap-4 text-base font-medium text-ink-body">
+                                            <a
+                                                href="#home"
+                                                className="rounded-2xl px-4 py-3 transition hover:bg-brand-50 hover:text-ink-strong"
+                                                onClick={() =>
+                                                    setIsMobileMenuOpen(false)
+                                                }
+                                            >
+                                                {t("navHome")}
+                                            </a>
+                                            <a
+                                                href="#suggest-trip"
+                                                className="rounded-2xl px-4 py-3 transition hover:bg-brand-50 hover:text-ink-strong"
+                                                onClick={() =>
+                                                    setIsMobileMenuOpen(false)
+                                                }
+                                            >
+                                                {t("navTrip")}
+                                            </a>
+                                            <Link
+                                                href="/my-trip"
+                                                className="rounded-2xl px-4 py-3 transition hover:bg-brand-50 hover:text-ink-strong"
+                                                onClick={() =>
+                                                    setIsMobileMenuOpen(false)
+                                                }
+                                            >
+                                                {t("navCreateTrip")}
+                                            </Link>
+                                            <a
+                                                href="#join_us_for_shear_your_trip"
+                                                className="rounded-2xl px-4 py-3 transition hover:bg-brand-50 hover:text-ink-strong"
+                                                onClick={() =>
+                                                    setIsMobileMenuOpen(false)
+                                                }
+                                            >
+                                                {t("navShare")}
+                                            </a>
+                                        </nav>
+                                    </SheetContent>
+                                </Sheet>
                             </div>
                         </div>
                         <nav className="hidden flex-wrap items-center gap-5 text-sm font-medium text-ink-body md:flex">
@@ -227,40 +281,6 @@ export default function HomePage() {
                                 {t("navShare")}
                             </a>
                         </nav>
-                        <nav
-                            className={`flex-col gap-3 rounded-3xl border border-line-subtle bg-surface-raised p-4 text-sm font-medium text-ink-body md:hidden ${
-                                isMobileMenuOpen ? "flex" : "hidden"
-                            }`}
-                        >
-                            <a
-                                href="#home"
-                                className="hover:text-ink-strong"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                {t("navHome")}
-                            </a>
-                            <a
-                                href="#suggest-trip"
-                                className="hover:text-ink-strong"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                {t("navTrip")}
-                            </a>
-                            <Link
-                                href="/my-trip"
-                                className="hover:text-ink-strong"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                {t("navCreateTrip")}
-                            </Link>
-                            <a
-                                href="#join_us_for_shear_your_trip"
-                                className="hover:text-ink-strong"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                {t("navShare")}
-                            </a>
-                        </nav>
                     </div>
 
                     <div className="flex w-full flex-col gap-3 md:ml-auto md:w-auto md:flex-row md:items-center">
@@ -277,9 +297,11 @@ export default function HomePage() {
                             />
                         </div>
                         <div className="hidden items-center rounded-full border border-line-subtle bg-surface-raised p-1 md:flex">
-                            <button
+                            <Button
                                 type="button"
                                 onClick={() => handleLocaleChange("en")}
+                                variant="ghost"
+                                size="sm"
                                 className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
                                     locale === "en"
                                         ? "bg-brand-500 text-ink-strong"
@@ -287,10 +309,12 @@ export default function HomePage() {
                                 }`}
                             >
                                 {t("languageEnglish")}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="button"
                                 onClick={() => handleLocaleChange("th")}
+                                variant="ghost"
+                                size="sm"
                                 className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
                                     locale === "th"
                                         ? "bg-brand-500 text-ink-strong"
@@ -298,7 +322,7 @@ export default function HomePage() {
                                 }`}
                             >
                                 {t("languageThai")}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -338,7 +362,8 @@ export default function HomePage() {
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="rounded-[2rem] bg-surface-raised p-6 shadow-[0_20px_60px_rgba(23,15,7,0.08)]">
+                        <Card className="p-6">
+                            <CardContent className="p-0">
                             <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-700">
                                 {t("whatWeDoLabel")}
                             </p>
@@ -348,8 +373,10 @@ export default function HomePage() {
                             <p className="mt-2 text-sm leading-6 text-ink-body">
                                 {t("whatWeDoDescription")}
                             </p>
-                        </div>
-                        <div className="rounded-[2rem] bg-accent-500 p-6 text-ink-inverse shadow-[0_20px_60px_rgba(23,15,7,0.18)]">
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-accent-500 p-6 text-ink-inverse shadow-[0_20px_60px_rgba(23,15,7,0.18)]">
+                            <CardContent className="p-0">
                             <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-100">
                                 {t("communityLabel")}
                             </p>
@@ -359,8 +386,10 @@ export default function HomePage() {
                             <p className="mt-2 text-sm leading-6 text-brand-50">
                                 {t("communityDescription")}
                             </p>
-                        </div>
-                        <div className="rounded-[2rem] bg-brand-300 p-6 shadow-[0_20px_60px_rgba(180,83,9,0.18)]">
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-brand-300 p-6 shadow-[0_20px_60px_rgba(180,83,9,0.18)]">
+                            <CardContent className="p-0">
                             <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-900">
                                 {t("shareLabel")}
                             </p>
@@ -370,15 +399,18 @@ export default function HomePage() {
                             <p className="mt-2 text-sm leading-6 text-brand-900/80">
                                 {t("shareDescription")}
                             </p>
-                        </div>
-                        <div className="rounded-[2rem] border border-line-subtle bg-surface-soft p-6 shadow-[0_20px_60px_rgba(23,15,7,0.08)]">
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-surface-soft p-6">
+                            <CardContent className="p-0">
                             <p className="text-4xl font-semibold">
                                 {t("statsValue")}
                             </p>
                             <p className="mt-2 text-sm leading-6 text-ink-body">
                                 {t("statsDescription")}
                             </p>
-                        </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </section>
@@ -412,10 +444,11 @@ export default function HomePage() {
 
                     <div className="mt-10 grid gap-5 lg:grid-cols-2">
                         {featuredTrips.map((trip) => (
-                            <article
+                            <Card
                                 key={trip.title}
-                                className="rounded-[2rem] bg-surface-raised p-6 shadow-[0_18px_50px_rgba(23,15,7,0.08)]"
+                                className="p-6 shadow-[0_18px_50px_rgba(23,15,7,0.08)]"
                             >
+                                <CardContent className="p-0">
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand-700">
@@ -442,7 +475,8 @@ export default function HomePage() {
                                         </span>
                                     ))}
                                 </div>
-                            </article>
+                                </CardContent>
+                            </Card>
                         ))}
                     </div>
                 </div>
@@ -467,7 +501,8 @@ export default function HomePage() {
                     </div>
 
                     <div className="mx-auto w-full max-w-md">
-                        <div className="rounded-[2rem] border border-line-subtle bg-surface-panel p-7 shadow-[0_24px_80px_rgba(23,15,7,0.16)] backdrop-blur">
+                        <Card className="bg-surface-panel p-7 shadow-[0_24px_80px_rgba(23,15,7,0.16)] backdrop-blur">
+                            <CardContent className="p-0">
                             <div className="mb-8">
                                 <p className="text-sm font-medium uppercase tracking-[0.3em] text-brand-700">
                                     {t("loginEyebrow")}
@@ -489,11 +524,11 @@ export default function HomePage() {
                                         {t("emailLabel")}
                                     </label>
 
-                                    <input
+                                    <Input
                                         id="email"
                                         type="email"
                                         placeholder={t("emailPlaceholder")}
-                                        className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-raised px-4 text-sm text-ink-strong outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                                        className="bg-surface-raised"
                                     />
                                 </div>
 
@@ -512,11 +547,11 @@ export default function HomePage() {
                                             {t("forgotPassword")}
                                         </a>
                                     </div>
-                                    <input
+                                    <Input
                                         id="password"
                                         type="password"
                                         placeholder={t("passwordPlaceholder")}
-                                        className="h-12 w-full rounded-2xl border border-line-subtle bg-surface-raised px-4 text-sm text-ink-strong outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                                        className="bg-surface-raised"
                                     />
                                 </div>
 
@@ -550,18 +585,22 @@ export default function HomePage() {
                             </div>
 
                             <div className="grid gap-3 sm:grid-cols-2">
-                                <button
+                                <Button
                                     type="button"
-                                    className="h-11 rounded-2xl border border-line-subtle bg-surface-raised text-sm font-medium text-ink-body transition hover:border-accent-500 hover:text-ink-strong"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-11 rounded-2xl"
                                 >
                                     Google
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="button"
-                                    className="h-11 rounded-2xl border border-line-subtle bg-surface-raised text-sm font-medium text-ink-body transition hover:border-accent-500 hover:text-ink-strong"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-11 rounded-2xl"
                                 >
                                     Apple
-                                </button>
+                                </Button>
                             </div>
 
                             <p className="mt-6 text-center text-sm text-ink-body">
@@ -573,7 +612,8 @@ export default function HomePage() {
                                     {t("createAccount")}
                                 </a>
                             </p>
-                        </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </section>
