@@ -4,13 +4,16 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Menu } from "lucide-react";
 
-import { ActionButton } from "@/components/action-button";
-import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { AuthModal, type AuthModalMode } from "@/components/auth/auth-modal";
+import { LoginForm } from "@/components/auth/login-form";
+import { AuthenticatedHomeShell } from "@/components/social-home/authenticated-home-shell";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import type { AppLocale } from "@/i18n/routing";
+import { useStoredAuth } from "@/services/auth";
 
 const featuredTripsByLocale: Record<
     AppLocale,
@@ -128,7 +131,10 @@ function SearchForm({
                 placeholder={placeholder}
                 className={inputClassName}
             />
-            <Button type="submit" className={buttonClassName}>
+            <Button
+                type="submit"
+                className={buttonClassName}
+            >
                 {buttonLabel}
             </Button>
         </form>
@@ -140,8 +146,11 @@ export default function HomePage() {
     const locale = useLocale() as AppLocale;
     const pathname = usePathname();
     const router = useRouter();
+    const { auth, isAuthenticated } = useStoredAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [authModalMode, setAuthModalMode] = useState<AuthModalMode>("signup");
     const featuredTrips = featuredTripsByLocale[locale];
 
     const handleSearchSubmit = () => {
@@ -160,10 +169,14 @@ export default function HomePage() {
         router.replace(pathname, { locale: nextLocale });
     };
 
+    if (isAuthenticated && auth) {
+        return <AuthenticatedHomeShell locale={locale} auth={auth} />;
+    }
+
     return (
         <main className="min-h-screen bg-surface-base text-ink-strong">
-            <header className="sticky top-0 z-20 border-b border-line-subtle bg-surface-base/90 backdrop-blur">
-                <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-4 md:flex-row md:items-center md:gap-6 lg:px-10">
+            <header className="sticky top-0 z-50 border-b border-line-subtle bg-surface-base/90 backdrop-blur">
+                <div className="mx-auto flex max-w-7xl flex-col gap-4 px-2 py-4 md:flex-row md:items-center md:gap-6">
                     <div className="flex flex-col gap-3 md:min-w-0 md:flex-1 md:flex-row md:items-center md:gap-8">
                         <div className="flex items-center justify-between gap-4 md:min-w-[16rem] md:justify-start lg:min-w-[20rem]">
                             <a
@@ -235,15 +248,6 @@ export default function HomePage() {
                                             >
                                                 {t("navTrip")}
                                             </a>
-                                            <Link
-                                                href="/my-trip"
-                                                className="rounded-2xl px-4 py-3 transition hover:bg-brand-50 hover:text-ink-strong"
-                                                onClick={() =>
-                                                    setIsMobileMenuOpen(false)
-                                                }
-                                            >
-                                                {t("navCreateTrip")}
-                                            </Link>
                                             <a
                                                 href="#join_us_for_shear_your_trip"
                                                 className="rounded-2xl px-4 py-3 transition hover:bg-brand-50 hover:text-ink-strong"
@@ -253,13 +257,25 @@ export default function HomePage() {
                                             >
                                                 {t("navShare")}
                                             </a>
+                                            <a
+                                                href="#login"
+                                                className="rounded-2xl bg-accent-500 px-4 py-3 text-center font-semibold text-ink-inverse transition hover:bg-accent-700"
+                                                onClick={() =>
+                                                    setIsMobileMenuOpen(false)
+                                                }
+                                            >
+                                                {t("signIn")}
+                                            </a>
                                         </nav>
                                     </SheetContent>
                                 </Sheet>
                             </div>
                         </div>
                         <nav className="hidden flex-wrap items-center gap-5 text-sm font-medium text-ink-body md:flex">
-                            <a href="#home" className="hover:text-ink-strong">
+                            <a
+                                href="#home"
+                                className="hover:text-ink-strong"
+                            >
                                 {t("navHome")}
                             </a>
                             <a
@@ -268,12 +284,6 @@ export default function HomePage() {
                             >
                                 {t("navTrip")}
                             </a>
-                            <Link
-                                href="/my-trip"
-                                className="hover:text-ink-strong"
-                            >
-                                {t("navCreateTrip")}
-                            </Link>
                             <a
                                 href="#join_us_for_shear_your_trip"
                                 className="hover:text-ink-strong"
@@ -296,33 +306,41 @@ export default function HomePage() {
                                 buttonClassName="h-11 rounded-full bg-accent-500 px-5 text-sm font-semibold text-ink-inverse transition hover:bg-accent-700"
                             />
                         </div>
-                        <div className="hidden items-center rounded-full border border-line-subtle bg-surface-raised p-1 md:flex">
-                            <Button
-                                type="button"
-                                onClick={() => handleLocaleChange("en")}
-                                variant="ghost"
-                                size="sm"
-                                className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
-                                    locale === "en"
-                                        ? "bg-brand-500 text-ink-strong"
-                                        : "text-ink-body hover:text-ink-strong"
-                                }`}
+                        <div className="flex items-center gap-2 md:gap-3 w-full">
+                            <a
+                                href="#login"
+                                className="hidden h-10 w-full items-center justify-center rounded-full border border-line-subtle bg-surface-raised px-4 text-sm font-semibold text-ink-strong transition hover:border-accent-500 md:inline-flex md:w-auto"
                             >
-                                {t("languageEnglish")}
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={() => handleLocaleChange("th")}
-                                variant="ghost"
-                                size="sm"
-                                className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
-                                    locale === "th"
-                                        ? "bg-brand-500 text-ink-strong"
-                                        : "text-ink-body hover:text-ink-strong"
-                                }`}
-                            >
-                                {t("languageThai")}
-                            </Button>
+                                {t("signIn")}
+                            </a>
+                            <div className="hidden items-center rounded-full border border-line-subtle bg-surface-raised p-1 md:flex">
+                                <Button
+                                    type="button"
+                                    onClick={() => handleLocaleChange("en")}
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
+                                        locale === "en"
+                                            ? "bg-brand-500 text-ink-strong"
+                                            : "text-ink-body hover:text-ink-strong"
+                                    }`}
+                                >
+                                    {t("languageEnglish")}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={() => handleLocaleChange("th")}
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
+                                        locale === "th"
+                                            ? "bg-brand-500 text-ink-strong"
+                                            : "text-ink-body hover:text-ink-strong"
+                                    }`}
+                                >
+                                    {t("languageThai")}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -364,58 +382,61 @@ export default function HomePage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Card className="p-6">
                             <CardContent className="p-0">
-                            <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-700">
-                                {t("whatWeDoLabel")}
-                            </p>
-                            <p className="mt-4 text-3xl font-semibold">
-                                {t("whatWeDoTitle")}
-                            </p>
-                            <p className="mt-2 text-sm leading-6 text-ink-body">
-                                {t("whatWeDoDescription")}
-                            </p>
+                                <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-700">
+                                    {t("whatWeDoLabel")}
+                                </p>
+                                <p className="mt-4 text-3xl font-semibold">
+                                    {t("whatWeDoTitle")}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-ink-body">
+                                    {t("whatWeDoDescription")}
+                                </p>
                             </CardContent>
                         </Card>
                         <Card className="bg-accent-500 p-6 text-ink-inverse shadow-[0_20px_60px_rgba(23,15,7,0.18)]">
                             <CardContent className="p-0">
-                            <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-100">
-                                {t("communityLabel")}
-                            </p>
-                            <p className="mt-4 text-3xl font-semibold">
-                                {t("communityTitle")}
-                            </p>
-                            <p className="mt-2 text-sm leading-6 text-brand-50">
-                                {t("communityDescription")}
-                            </p>
+                                <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-100">
+                                    {t("communityLabel")}
+                                </p>
+                                <p className="mt-4 text-3xl font-semibold">
+                                    {t("communityTitle")}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-brand-50">
+                                    {t("communityDescription")}
+                                </p>
                             </CardContent>
                         </Card>
                         <Card className="bg-brand-300 p-6 shadow-[0_20px_60px_rgba(180,83,9,0.18)]">
                             <CardContent className="p-0">
-                            <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-900">
-                                {t("shareLabel")}
-                            </p>
-                            <p className="mt-4 text-3xl font-semibold text-ink-strong">
-                                {t("shareTitle")}
-                            </p>
-                            <p className="mt-2 text-sm leading-6 text-brand-900/80">
-                                {t("shareDescription")}
-                            </p>
+                                <p className="text-sm font-medium uppercase tracking-[0.25em] text-brand-900">
+                                    {t("shareLabel")}
+                                </p>
+                                <p className="mt-4 text-3xl font-semibold text-ink-strong">
+                                    {t("shareTitle")}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-brand-900/80">
+                                    {t("shareDescription")}
+                                </p>
                             </CardContent>
                         </Card>
                         <Card className="bg-surface-soft p-6">
                             <CardContent className="p-0">
-                            <p className="text-4xl font-semibold">
-                                {t("statsValue")}
-                            </p>
-                            <p className="mt-2 text-sm leading-6 text-ink-body">
-                                {t("statsDescription")}
-                            </p>
+                                <p className="text-4xl font-semibold">
+                                    {t("statsValue")}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-ink-body">
+                                    {t("statsDescription")}
+                                </p>
                             </CardContent>
                         </Card>
                     </div>
                 </div>
             </section>
 
-            <section id="suggest-trip" className="border-b border-line-subtle">
+            <section
+                id="suggest-trip"
+                className="border-b border-line-subtle"
+            >
                 <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-2xl">
@@ -449,32 +470,32 @@ export default function HomePage() {
                                 className="p-6 shadow-[0_18px_50px_rgba(23,15,7,0.08)]"
                             >
                                 <CardContent className="p-0">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand-700">
-                                            {trip.author}
-                                        </p>
-                                        <h3 className="mt-3 text-2xl font-semibold tracking-tight">
-                                            {trip.title}
-                                        </h3>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand-700">
+                                                {trip.author}
+                                            </p>
+                                            <h3 className="mt-3 text-2xl font-semibold tracking-tight">
+                                                {trip.title}
+                                            </h3>
+                                        </div>
+                                        <div className="rounded-full bg-highlight-soft px-3 py-2 text-sm font-semibold text-highlight-strong">
+                                            {trip.likes} {t("likesSuffix")}
+                                        </div>
                                     </div>
-                                    <div className="rounded-full bg-highlight-soft px-3 py-2 text-sm font-semibold text-highlight-strong">
-                                        {trip.likes} {t("likesSuffix")}
+                                    <p className="mt-4 text-sm leading-7 text-ink-body">
+                                        {trip.summary}
+                                    </p>
+                                    <div className="mt-5 flex flex-wrap gap-2">
+                                        {trip.tags.map((tag) => (
+                                            <span
+                                                key={tag}
+                                                className="rounded-full border border-line-subtle bg-surface-soft px-3 py-1 text-xs font-medium text-ink-body"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))}
                                     </div>
-                                </div>
-                                <p className="mt-4 text-sm leading-7 text-ink-body">
-                                    {trip.summary}
-                                </p>
-                                <div className="mt-5 flex flex-wrap gap-2">
-                                    {trip.tags.map((tag) => (
-                                        <span
-                                            key={tag}
-                                            className="rounded-full border border-line-subtle bg-surface-soft px-3 py-1 text-xs font-medium text-ink-body"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
                                 </CardContent>
                             </Card>
                         ))}
@@ -500,123 +521,29 @@ export default function HomePage() {
                         </p>
                     </div>
 
-                    <div className="mx-auto w-full max-w-md">
+                    <div
+                        id="login"
+                        className="mx-auto w-full max-w-md scroll-mt-32"
+                    >
                         <Card className="bg-surface-panel p-7 shadow-[0_24px_80px_rgba(23,15,7,0.16)] backdrop-blur">
                             <CardContent className="p-0">
-                            <div className="mb-8">
-                                <p className="text-sm font-medium uppercase tracking-[0.3em] text-brand-700">
-                                    {t("loginEyebrow")}
-                                </p>
-                                <h3 className="mt-3 text-3xl font-semibold tracking-tight text-ink-strong">
-                                    {t("loginTitle")}
-                                </h3>
-                                <p className="mt-2 text-sm leading-6 text-ink-body">
-                                    {t("loginDescription")}
-                                </p>
-                            </div>
-
-                            <form className="space-y-5">
-                                <div className="space-y-2">
-                                    <label
-                                        className="text-sm font-medium text-ink-body"
-                                        htmlFor="email"
-                                    >
-                                        {t("emailLabel")}
-                                    </label>
-
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder={t("emailPlaceholder")}
-                                        className="bg-surface-raised"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <label
-                                            className="text-sm font-medium text-ink-body"
-                                            htmlFor="password"
-                                        >
-                                            {t("passwordLabel")}
-                                        </label>
-                                        <a
-                                            href="#"
-                                            className="text-sm font-medium text-brand-700 transition hover:text-brand-900"
-                                        >
-                                            {t("forgotPassword")}
-                                        </a>
-                                    </div>
-                                    <Input
-                                        id="password"
-                                        type="password"
-                                        placeholder={t("passwordPlaceholder")}
-                                        className="bg-surface-raised"
-                                    />
-                                </div>
-
-                                <div className="flex items-center justify-between text-sm text-ink-body">
-                                    <label className="flex items-center gap-3">
-                                        <input
-                                            type="checkbox"
-                                            className="h-4 w-4 rounded border-line-subtle text-brand-500 focus:ring-brand-500"
-                                        />
-                                        {t("rememberMe")}
-                                    </label>
-                                    <span>{t("secureLogin")}</span>
-                                </div>
-
-                                <ActionButton
-                                    type="submit"
-                                    color="dark"
-                                    label={t("signIn")}
+                                <LoginForm
+                                    onCreateAccount={() => {
+                                        setAuthModalMode("signup");
+                                        setIsAuthModalOpen(true);
+                                    }}
                                 />
-                                <ActionButton
-                                    color="light"
-                                    label={t("secondaryButton")}
-                                    onClick={() => console.log("A clicked")}
-                                />
-                            </form>
-
-                            <div className="my-6 flex items-center gap-4 text-xs uppercase tracking-[0.3em] text-ink-body/60">
-                                <div className="h-px flex-1 bg-line-subtle" />
-                                {t("continueWith")}
-                                <div className="h-px flex-1 bg-line-subtle" />
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-11 rounded-2xl"
-                                >
-                                    Google
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-11 rounded-2xl"
-                                >
-                                    Apple
-                                </Button>
-                            </div>
-
-                            <p className="mt-6 text-center text-sm text-ink-body">
-                                {t("newToTrip2Gather")}{" "}
-                                <a
-                                    href="#"
-                                    className="font-semibold text-ink-strong"
-                                >
-                                    {t("createAccount")}
-                                </a>
-                            </p>
                             </CardContent>
                         </Card>
                     </div>
                 </div>
             </section>
+            <AuthModal
+                open={isAuthModalOpen}
+                mode={authModalMode}
+                onModeChange={setAuthModalMode}
+                onOpenChange={setIsAuthModalOpen}
+            />
         </main>
     );
 }

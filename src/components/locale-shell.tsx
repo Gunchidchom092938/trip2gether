@@ -3,6 +3,8 @@
 import { usePathname } from "@/i18n/navigation";
 
 import { SiteNavbar } from "@/components/site-navbar";
+import { PopupProvider } from "@/components/ui/popup-provider";
+import { useStoredAuth } from "@/services/auth";
 
 type LocaleShellProps = {
     children: React.ReactNode;
@@ -11,11 +13,12 @@ type LocaleShellProps = {
 export function LocaleShell({ children }: LocaleShellProps) {
     const pathname = usePathname();
     const isHomePage = pathname === "/";
+    const { isAuthenticated } = useStoredAuth();
 
     return (
-        <>
-            {isHomePage ? null : <SiteNavbar />}
+        <PopupProvider>
+            {isHomePage && !isAuthenticated ? null : <SiteNavbar />}
             {children}
-        </>
+        </PopupProvider>
     );
 }
